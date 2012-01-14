@@ -1,0 +1,6 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/Pg-Checksource.t
+lib/Pg/Checksource.pm

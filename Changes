@@ -1,0 +1,6 @@
+Revision history for Perl extension Pg::Checksource.
+
+0.01  Sat Jan 14 16:43:27 2012
+	- original version; created by h2xs 1.23 with options
+		-X -n Pg::Checksource
+
