@@ -51,6 +51,16 @@ sub _build_rules {
         my $grammar = Pg::Checksource::RuleGrammar->new;
         my $rule_descriptions = $grammar->from_file($rule_path);
         
+        # Override any user-configured values
+        for my $key (keys %{$config->{$rule_set}}) {
+            my ($name, $attribute) = $key =~ /(.*)-(\w+)$/;
+            for my $rule (@$rule_descriptions) {
+                if ($rule->{name} eq $name) {
+                    $rule->{$attribute} = $config->{$rule_set}->{$key};
+                }
+            }
+        }
+                
         my @section_rules = Pg::Checksource::RuleBuilder->build(@$rule_descriptions);
         push @rules, @section_rules;
     }

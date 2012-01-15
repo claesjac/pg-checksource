@@ -32,5 +32,5 @@ define-list keywords
 
 token "keywords-in-caps" {
     type: %keywords;
-    matches: "[A-Z]+";
+    matches: "^[A-Z]+$";
 };

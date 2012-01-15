@@ -24,9 +24,9 @@ sub build {
 
         push @checks, sub {
             my $pt = $_[1]->previous;
-            return 1 unless $pt;
+            return -1 unless $pt;
             my $ptt = $pt->type;
-            return unless any { ref $_ eq "Regexp" ? $ptt =~ $_ : $ptt eq $_ } @prev_types;
+            return 0 unless any { ref $_ eq "Regexp" ? $ptt =~ $_ : $ptt eq $_ } @prev_types;
 
             1;
         };        
@@ -37,12 +37,38 @@ sub build {
 
         push @checks, sub {
             my $ft = $_[1]->following;
-            return 1 unless $ft;
+            return -1 unless $ft;
             my $ftt = $ft->type;
-            return unless any { ref $_ eq "Regexp" ? $ftt =~ $_ : $ftt eq $_ } @follow_types;
+            return 0 unless any { ref $_ eq "Regexp" ? $ftt =~ $_ : $ftt eq $_ } @follow_types;
 
             1;
         };        
+    }
+    
+    if ($desc->{exclude_ci}) {
+        my %exclude = map { lc($_) => 1 } @{$desc->{exclude_ci}};
+        
+        push @checks, sub {
+            my $v = lc($_[0]->src);
+            if (exists $exclude{$v}) {
+                return -1;
+            }
+
+            1;
+        };
+    }
+    
+    if ($desc->{only_ci}) {
+        my %only = map { lc($_) => 1 } @{$desc->{only_ci}};
+        
+        push @checks, sub {
+            my $v = lc($_[0]->src);
+            if (!exists $only{$v}) {
+                return -1;
+            }
+
+            1;
+        };
     }
     
     if ($desc->{matches}) {
@@ -60,14 +86,14 @@ sub build {
         if (ref $type eq "Regexp") {
             $rule = sub {
                 return -1 unless $_[0]->type =~ $type;
-                $_->(@_) || return 0 for @checks;
+                do { my $r = $_->(@_); return $r if $r <= 0 } for @checks;
                 1;
             };
         }
         else {
             $rule = sub {
                 return -1 unless $_[0]->type eq $type;
-                $_->(@_) || return 0 for @checks;
+                do { my $r = $_->(@_); return $r if $r <= 0 } for @checks;
                 1;
             };            
         }
@@ -76,7 +102,7 @@ sub build {
         $rule = sub {
             my $tt = $_[0]->type;            
             return -1 unless any { ref $_ eq "Regexp" ? $tt =~ $_ : $tt eq $_ } @types;
-            $_->(@_) || return 0 for @checks;
+            do { my $r = $_->(@_); return $r if $r <= 0 } for @checks;
             1;
         };            
     }

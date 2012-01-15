@@ -39,6 +39,14 @@ sub parse_variable {
     return $Parser_Data{refaddr $self}->{vars}->{$name};
 }
 
+sub parse_variable_or_list {
+    my $self = shift;
+    
+    $self->any_of(
+        sub { $self->parse_variable_as_list; },
+        sub { $self->parse_ident_and_pattern_list; },
+    );
+}
 sub parse_token_rule {
     my $self = shift;
 
@@ -50,12 +58,11 @@ sub parse_token_rule {
         $self->commit;
         $self->sequence_of(sub {
             $self->any_of(
-                sub { $self->expect("type:"); $rule->{types} = $self->any_of(
-                    sub { $self->parse_variable_as_list; },
-                    sub { $self->parse_ident_and_pattern_list; },
-                ), },
-                sub { $self->expect("preceded-by:"); $rule->{'preceded_by'} = $self->parse_ident_and_pattern_list; },
-                sub { $self->expect("followed-by:"); $rule->{'followed_by'} = $self->parse_ident_and_pattern_list; },
+                sub { $self->expect("type:"); $rule->{types} = $self->parse_variable_or_list; },
+                sub { $self->expect("preceded-by:"); $rule->{'preceded_by'} = $self->parse_variable_or_list; },
+                sub { $self->expect("followed-by:"); $rule->{'followed_by'} = $self->parse_variable_or_list; },
+                sub { $self->expect("exclude-ci:"); $rule->{'exclude_ci'} = $self->parse_variable_or_list; },
+                sub { $self->expect("only-ci:"); $rule->{'only_ci'} = $self->parse_variable_or_list; },
                 sub { $self->expect("matches:"); $rule->{matches} = $self->token_string; }
             );
 
