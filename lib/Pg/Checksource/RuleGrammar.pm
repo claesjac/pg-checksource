@@ -82,19 +82,21 @@ sub parse_list_decl {
     $Parser_Data{refaddr $self}->{vars}->{$name} = $idents;
     
     $self->expect(";");
-    
-    undef;        
 }
 
 sub parse {
     my $self = shift;
     
+    my @rules;
+    
     $self->sequence_of(sub { 
         $self->any_of(
             sub { $self->parse_list_decl; },
-            sub { $self->parse_token_rule; },
+            sub { push @rules, $self->parse_token_rule; },
         );
     });
+    
+    return \@rules;
 }
 
 sub DESTROY {

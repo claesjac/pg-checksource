@@ -3,6 +3,7 @@ package Pg::Checksource::RuleBuilder;
 use strict;
 use warnings;
 
+use Carp qw(croak);
 use Pg::Checksource::RuleBuilder::TokenRule;
 
 sub build {
@@ -11,11 +12,9 @@ sub build {
     my @rules;
     
     for my $rule (@_) {
-        next unless $rule;
-        
         my $type = ref $rule;
-        
-        push @rules, "Pg::Checksource::RuleBuilder::${type}"->build($rule) if $type;
+        croak "Invalid stuff $rule in the rule list, can't proceed" unless $type;
+        push @rules, "Pg::Checksource::RuleBuilder::${type}"->build($rule);
     }
     
     return @rules;
