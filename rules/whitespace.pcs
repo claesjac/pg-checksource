@@ -1,0 +1,10 @@
+token "whitespace-before-operator" {    
+    type: Op, OP_*;
+    preceded-by: WHITESPACE, OPEN_PAREN;
+};
+
+token "whitespace-after-operator" {
+    type: Op, OP_*;
+    followed-by: WHITESPACE, CLOSE_PAREN;
+};
+

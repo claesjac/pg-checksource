@@ -1,45 +1,93 @@
 package Pg::Checksource;
 
-use 5.014001;
 use strict;
 use warnings;
+use feature 'say';
 
-require Exporter;
-use AutoLoader qw(AUTOLOAD);
+use Array::Stream::Transactional;
+use Carp qw(croak);
+use Config::Tiny;
+use Data::Dumper qw(Dumper);
+use File::Slurp qw(read_file);
 
-our @ISA = qw(Exporter);
+use Pg::Parser;
+use Pg::Checksource::RuleBuilder;
+use Pg::Checksource::RuleGrammar;
 
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
+use accessors::ro qw(token_rules node_rules);
 
-# This allows declaration	use Pg::Checksource ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+sub new {
+    my ($pkg, $args) = @_;
+    
+    my $config_file = $args->{config} || $ENV{PG_CHECKSOURCE_RC} || File::Spec->catfile(home(), ".pgchecksource");
+    
+    croak "Can't find config file: $config_file" unless -e $config_file;
+    my $config = Config::Tiny->read($config_file) or croak "Failed to read config because of: $Config::Tiny::errstr";
+    
+    my ($token_rules, $node_rules) = _build_rules($config);
+    
+    bless { 
+        config => $config,
+        token_rules => $token_rules,
+        node_rules => $node_rules,        
+    }, $pkg;
+}
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+sub _build_rules {
+    my $config = shift;
+    
+    my @rules;
+    
+    for my $rule_set (keys %$config) {
+        next if $rule_set eq '_';
+        
+        my $filename = "${rule_set}.pcs";
+        my $rule_path = File::Spec->catfile("rules", $filename);
+        croak "Can't find $rule_path" unless -e $rule_path;
+    
+        my $grammar = Pg::Checksource::RuleGrammar->new;
+        my $rule_descriptions = $grammar->from_file($rule_path);
+        
+        my @section_rules = Pg::Checksource::RuleBuilder->build(@$rule_descriptions);
+        push @rules, @section_rules;
+    }
+    
+    my @token_rules = grep ref $_ eq "Pg::Checksource::RuleBuilder::TokenRule", @rules;
+    my @node_rules = grep ref $_ eq "Pg::Checksource::RuleBuilder::NodeRule", @rules;
+    
+    return \@token_rules, \@node_rules;
+}
 
-our @EXPORT = qw(
-	
-);
+sub run {
+    my $self = shift;
 
-our $VERSION = '0.01';
+    my @token_rules = @{$self->token_rules};
+    my @node_rules = @{$self->node_rules};
 
+    for my $file (@_) {
+        if (@token_rules) {
+            my $lexer = Pg::Parser::Lexer->lex(scalar read_file($file), { ignore_whitespace => 0});
+            my $tokens = $lexer->read_all();
+            my $stream = Array::Stream::Transactional->new($tokens);
+            while ($stream->has_more) {
+                for my $rule (@token_rules) {
+                    my $t = $stream->current;
+                    unless ($rule->check($t, $stream)) {
+                        say "'", $t->src, "' at offset ", $t->offset, " doesn't conform to '", $rule->name, "'";
+                    }
+                }
 
-# Preloaded methods go here.
-
-# Autoload methods go after =cut, and are processed by the autosplit program.
-
+                $stream->next;
+            }
+        }
+    }
+}
+    
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
-
 =head1 NAME
 
-Pg::Checksource - Perl extension for blah blah blah
+Pg::Checksource - 
 
 =head1 SYNOPSIS
 
@@ -54,26 +102,9 @@ unedited.
 
 Blah blah blah.
 
-=head2 EXPORT
-
-None by default.
-
-
-
-=head1 SEE ALSO
-
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
-
 =head1 AUTHOR
 
-Claes Jakobsson, E<lt>claes@localE<gt>
+Claes Jakobsson, E<lt>claes@surfar.nuE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
