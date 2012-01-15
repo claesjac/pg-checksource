@@ -74,10 +74,10 @@ sub run {
             my $stream = Array::Stream::Transactional->new($tokens);
             while ($stream->has_more) {
                 my $t = $stream->current;
-                $self->debug && say "Checking token ", $t->type, " with value '", $t->src, "' at offset: ", $t->offset;
+                $self->debug && say "Checking token ", $t->type, " with value '", $t->src, "' at line: ", $t->line, " column: ", $t->column;
                 for my $rule (@token_rules) {
                     unless ($rule->check($t, $stream)) {
-                        say "'", $t->src, "' at offset ", $t->offset, " doesn't conform to '", $rule->name, "'";
+                        say "'", $t->src, "' at line ", $t->line, " column ", $t->column, " doesn't conform to '", $rule->name, "'";
                     }
                 }
 
