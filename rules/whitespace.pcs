@@ -1,10 +1,12 @@
+define-list operators Op, OP_*;
+
 token "whitespace-before-operator" {    
-    type: Op, OP_*;
+    type: %operators;
     preceded-by: WHITESPACE, OPEN_PAREN;
 };
 
 token "whitespace-after-operator" {
-    type: Op, OP_*;
+    type: %operators;
     followed-by: WHITESPACE, CLOSE_PAREN;
 };
 

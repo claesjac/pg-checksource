@@ -11,9 +11,11 @@ sub build {
     my @rules;
     
     for my $rule (@_) {
+        next unless $rule;
+        
         my $type = ref $rule;
         
-        push @rules, "Pg::Checksource::RuleBuilder::${type}"->build($rule);
+        push @rules, "Pg::Checksource::RuleBuilder::${type}"->build($rule) if $type;
     }
     
     return @rules;

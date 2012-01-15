@@ -4,17 +4,39 @@ use 5.014;
 use strict;
 use warnings;
 
+use Scalar::Util qw(refaddr);
+
 use base qw(Parser::MGC);
 
-sub parse_token_types {
+# Contains per-parser data such as variables etc
+my %Parser_Data;
+
+sub parse_ident_and_pattern_list {
     my $self = shift;
 
-    my $types = $self->list_of(",", sub { $self->expect(qr/\w+\*?/) });
-    $self->fail("No types specified") unless @$types;
+    my $idents = $self->list_of(",", sub { $self->expect(qr/\w+\*?/) });
+    $self->fail("No idents specified") unless @$idents;
     
-    @$types = map { $_ =~ /\*$/ ? do { chop; qr/$_\w+/ } : $_ } @$types;
+    @$idents = map { $_ =~ /\*$/ ? do { chop; qr/$_\w+/ } : $_ } @$idents;
     
-    $types;
+    return $idents;
+}
+
+sub parse_variable_as_list {
+    my $self = shift;
+    my $v = $self->parse_variable;
+    
+    ref $v eq 'ARRAY' ? $v : [$v];
+}
+
+sub parse_variable {
+    my $self = shift;
+
+    my $name = substr($self->expect(qr/%[[:alpha:]_]\w*/), 1);
+    
+    $self->fail("No variable named $name declared") unless exists $Parser_Data{refaddr $self}->{vars}->{$name};
+        
+    return $Parser_Data{refaddr $self}->{vars}->{$name};
 }
 
 sub parse_token_rule {
@@ -28,9 +50,12 @@ sub parse_token_rule {
         $self->commit;
         $self->sequence_of(sub {
             $self->any_of(
-                sub { $self->expect("type:"); $rule->{types} = $self->parse_token_types; },
-                sub { $self->expect("preceded-by:"); $rule->{'preceded_by'} = $self->parse_token_types; },
-                sub { $self->expect("followed-by:"); $rule->{'followed_by'} = $self->parse_token_types; },
+                sub { $self->expect("type:"); $rule->{types} = $self->any_of(
+                    sub { $self->parse_variable_as_list; },
+                    sub { $self->parse_ident_and_pattern_list; },
+                ), },
+                sub { $self->expect("preceded-by:"); $rule->{'preceded_by'} = $self->parse_ident_and_pattern_list; },
+                sub { $self->expect("followed-by:"); $rule->{'followed_by'} = $self->parse_ident_and_pattern_list; },
                 sub { $self->expect("matches:"); $rule->{matches} = $self->token_string; }
             );
 
@@ -38,10 +63,27 @@ sub parse_token_rule {
         });
     }, "}");
     
+    $self->expect(";");
+    
     $rule->{name} = $name;
     bless $rule, "TokenRule";
 
     return $rule;
+}
+
+sub parse_list_decl {
+    my $self = shift;
+    
+    $self->expect("define-list");
+
+    my $name = $self->token_ident();
+    my $idents = $self->parse_ident_and_pattern_list;
+    
+    $Parser_Data{refaddr $self}->{vars}->{$name} = $idents;
+    
+    $self->expect(";");
+    
+    undef;        
 }
 
 sub parse {
@@ -49,9 +91,15 @@ sub parse {
     
     $self->sequence_of(sub { 
         $self->any_of(
-            sub { my $r = $self->parse_token_rule; $self->expect(";"); $r },
+            sub { $self->parse_list_decl; },
+            sub { $self->parse_token_rule; },
         );
     });
+}
+
+sub DESTROY {
+    my $self = shift;
+    delete $Parser_Data{refaddr $self};
 }
 
 1;
