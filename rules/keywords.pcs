@@ -1,0 +1,4 @@
+token "keywords-in-caps" {
+    type: SELECT, CASE, IS, NOT, ELSE, WHEN, END_P, THEN;
+    matches: "[A-Z]+";
+};

@@ -10,7 +10,6 @@ sub parse_token_types {
     my $self = shift;
 
     my $types = $self->list_of(",", sub { $self->expect(qr/\w+\*?/) });
-    $self->expect(";");
     $self->fail("No types specified") unless @$types;
     
     @$types = map { $_ =~ /\*$/ ? do { chop; qr/$_\w+/ } : $_ } @$types;
@@ -32,7 +31,10 @@ sub parse_token_rule {
                 sub { $self->expect("type:"); $rule->{types} = $self->parse_token_types; },
                 sub { $self->expect("preceded-by:"); $rule->{'preceded_by'} = $self->parse_token_types; },
                 sub { $self->expect("followed-by:"); $rule->{'followed_by'} = $self->parse_token_types; },
-            )
+                sub { $self->expect("matches:"); $rule->{matches} = $self->token_string; }
+            );
+
+            $self->expect(";");
         });
     }, "}");
     

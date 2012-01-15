@@ -45,6 +45,13 @@ sub build {
         };        
     }
     
+    if ($desc->{matches}) {
+        my $re = qr/$desc->{matches}/;
+        push @checks, sub {
+            return $_[0]->src =~ $re ? 1 : 0;
+        }
+    }
+    
     return bless [sub { 1; }, $name] unless @checks;
     
     my $rule;

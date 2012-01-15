@@ -10,12 +10,17 @@ use Getopt::Long;
 use Pg::Checksource;
 
 my $config_file;
+my $debug;
 
-my $result = GetOptions("config=s" => \$config_file);
+my $result = GetOptions(
+    "config=s" => \$config_file,
+    "debug", \$debug,
+);
+
 unless ($result) {
     say "Usage: pg-checksource [-c|--config <path>] FILES";
     exit 1;
 }
 
-my $app = Pg::Checksource->new({config => $config_file});
+my $app = Pg::Checksource->new({config => $config_file, debug => $debug});
 $app->run(@ARGV);

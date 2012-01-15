@@ -14,7 +14,7 @@ use Pg::Parser;
 use Pg::Checksource::RuleBuilder;
 use Pg::Checksource::RuleGrammar;
 
-use accessors::ro qw(token_rules node_rules);
+use accessors::ro qw(token_rules node_rules debug);
 
 sub new {
     my ($pkg, $args) = @_;
@@ -24,10 +24,13 @@ sub new {
     croak "Can't find config file: $config_file" unless -e $config_file;
     my $config = Config::Tiny->read($config_file) or croak "Failed to read config because of: $Config::Tiny::errstr";
     
+    my $debug = $args->{debug} || $ENV{PG_CHECKSOURCE_DEBUG} || $config->{_}->{debug};
+    
     my ($token_rules, $node_rules) = _build_rules($config);
     
     bless { 
         config => $config,
+        debug => $debug,
         token_rules => $token_rules,
         node_rules => $node_rules,        
     }, $pkg;
@@ -70,8 +73,9 @@ sub run {
             my $tokens = $lexer->read_all();
             my $stream = Array::Stream::Transactional->new($tokens);
             while ($stream->has_more) {
+                my $t = $stream->current;
+                $self->debug && say "Checking token ", $t->type, " with value '", $t->src, "' at offset: ", $t->offset;
                 for my $rule (@token_rules) {
-                    my $t = $stream->current;
                     unless ($rule->check($t, $stream)) {
                         say "'", $t->src, "' at offset ", $t->offset, " doesn't conform to '", $rule->name, "'";
                     }
