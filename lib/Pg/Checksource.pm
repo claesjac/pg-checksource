@@ -9,6 +9,7 @@ use Carp qw(croak);
 use Config::Tiny;
 use Data::Dumper qw(Dumper);
 use File::Slurp qw(read_file);
+use File::HomeDir qw(home);
 
 use Pg::Parser;
 use Pg::Checksource::RuleBuilder;
