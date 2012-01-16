@@ -32,6 +32,19 @@ sub build {
         };        
     }
 
+    if ($desc->{not_preceded_by}) {
+        my @prev_types = @{$desc->{not_preceded_by}};
+
+        push @checks, sub {
+            my $pt = $_[1]->previous;
+            return -1 unless $pt;
+            my $ptt = $pt->type;
+            return 0 if any { ref $_ eq "Regexp" ? $ptt =~ $_ : $ptt eq $_ } @prev_types;
+
+            1;
+        };        
+    }
+
     if ($desc->{followed_by}) {
         my @follow_types = @{$desc->{followed_by}};
 
@@ -40,6 +53,19 @@ sub build {
             return -1 unless $ft;
             my $ftt = $ft->type;
             return 0 unless any { ref $_ eq "Regexp" ? $ftt =~ $_ : $ftt eq $_ } @follow_types;
+
+            1;
+        };        
+    }
+
+    if ($desc->{not_followed_by}) {
+        my @follow_types = @{$desc->{not_followed_by}};
+
+        push @checks, sub {
+            my $ft = $_[1]->following;
+            return -1 unless $ft;
+            my $ftt = $ft->type;
+            return 0 if any { ref $_ eq "Regexp" ? $ftt =~ $_ : $ftt eq $_ } @follow_types;
 
             1;
         };        

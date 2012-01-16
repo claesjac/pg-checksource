@@ -14,3 +14,8 @@ token "whitespace-after-comma" {
     type: COMMA;
     followed-by: WHITESPACE;
 };
+
+token "no-whitespace-before-comma" {
+    type: COMMA;
+    not-preceded-by: WHITESPACE;
+};
