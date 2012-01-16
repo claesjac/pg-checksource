@@ -11,6 +11,16 @@ use base qw(Parser::MGC);
 # Contains per-parser data such as variables etc
 my %Parser_Data;
 
+sub new {
+    my $pkg = shift;
+    my $self = $pkg->SUPER::new(
+        patterns => {
+            comment => qr{#.*?\n},
+        },
+    );
+
+    return $self;
+}
 sub parse_ident_and_pattern_list {
     my $self = shift;
 
