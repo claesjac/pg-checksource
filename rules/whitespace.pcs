@@ -10,3 +10,7 @@ token "whitespace-after-operator" {
     followed-by: WHITESPACE, CLOSE_PAREN;
 };
 
+token "whitespace-after-comma" {
+    type: COMMA;
+    followed-by: WHITESPACE;
+};
