@@ -80,7 +80,8 @@ sub run {
 
     for my $file (@_) {
         if (@token_rules) {
-            my $lexer = Pg::Parser::Lexer->lex(scalar read_file($file), { ignore_whitespace => 0});
+            my $src = read_file($file eq '-' ? \*STDIN : $file);
+            my $lexer = Pg::Parser::Lexer->lex($src, { ignore_whitespace => 0});
             my $tokens = $lexer->read_all();
             my $stream = Array::Stream::Transactional->new($tokens);
             while ($stream->has_more) {
