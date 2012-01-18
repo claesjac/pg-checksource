@@ -69,12 +69,13 @@ sub parse_token_rule {
         $self->sequence_of(sub {
             $self->any_of(
                 sub { $self->expect("type:"); $rule->{types} = $self->parse_variable_or_list; },
-                sub { $self->expect("preceded-by:"); $rule->{'preceded_by'} = $self->parse_variable_or_list; },
-                sub { $self->expect("not-preceded-by:"); $rule->{'not_preceded_by'} = $self->parse_variable_or_list; },
-                sub { $self->expect("followed-by:"); $rule->{'followed_by'} = $self->parse_variable_or_list; },
-                sub { $self->expect("not-followed-by:"); $rule->{'not_followed_by'} = $self->parse_variable_or_list; },
-                sub { $self->expect("exclude-ci:"); $rule->{'exclude_ci'} = $self->parse_variable_or_list; },
-                sub { $self->expect("only-ci:"); $rule->{'only_ci'} = $self->parse_variable_or_list; },
+                sub { $self->expect("sequence-of:"); $rule->{sequence_of} = $self->parse_variable_or_list; },
+                sub { $self->expect("preceded-by:"); $rule->{preceded_by} = $self->parse_variable_or_list; },
+                sub { $self->expect("not-preceded-by:"); $rule->{not_preceded_by} = $self->parse_variable_or_list; },
+                sub { $self->expect("followed-by:"); $rule->{followed_by} = $self->parse_variable_or_list; },
+                sub { $self->expect("not-followed-by:"); $rule->{not_followed_by} = $self->parse_variable_or_list; },
+                sub { $self->expect("exclude-ci:"); $rule->{exclude_ci} = $self->parse_variable_or_list; },
+                sub { $self->expect("only-ci:"); $rule->{only_ci} = $self->parse_variable_or_list; },
                 sub { $self->expect("matches:"); $rule->{matches} = $self->token_string; }
             );
 

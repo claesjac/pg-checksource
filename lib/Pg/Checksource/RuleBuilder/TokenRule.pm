@@ -13,9 +13,10 @@ sub build {
     my $name = $desc->{name};
     
     my @types = @{$desc->{types} || []};
+    my @sequence_of = @{$desc->{sequence_of} || []};
     
     # Must have something to trigger on
-    croak "Token rule '${name}' has no types" unless @types;
+    croak "Token rule '${name}' has no types" unless @types || @sequence_of;
     
     my @checks;
         
@@ -107,18 +108,28 @@ sub build {
     return bless [sub { 1; }, $name] unless @checks;
     
     my $rule;
-    if (@types == 1) {
-        my $type = shift @types;
-        if (ref $type eq "Regexp") {
-            $rule = sub {
-                return -1 unless $_[0]->type =~ $type;
-                do { my $r = $_->(@_); return $r if $r <= 0 } for @checks;
-                1;
-            };
+    if (@types) {
+        if (@types == 1) {
+            my $type = shift @types;
+            if (ref $type eq "Regexp") {
+                $rule = sub {
+                    return -1 unless $_[0]->type =~ $type;
+                    do { my $r = $_->(@_); return $r if $r <= 0 } for @checks;
+                    1;
+                };
+            }
+            else {
+                $rule = sub {
+                    return -1 unless $_[0]->type eq $type;
+                    do { my $r = $_->(@_); return $r if $r <= 0 } for @checks;
+                    1;
+                };            
+            }
         }
         else {
             $rule = sub {
-                return -1 unless $_[0]->type eq $type;
+                my $tt = $_[0]->type;            
+                return -1 unless any { ref $_ eq "Regexp" ? $tt =~ $_ : $tt eq $_ } @types;
                 do { my $r = $_->(@_); return $r if $r <= 0 } for @checks;
                 1;
             };            
@@ -126,11 +137,26 @@ sub build {
     }
     else {
         $rule = sub {
-            my $tt = $_[0]->type;            
-            return -1 unless any { ref $_ eq "Regexp" ? $tt =~ $_ : $tt eq $_ } @types;
-            do { my $r = $_->(@_); return $r if $r <= 0 } for @checks;
+            my $stream = $_[1];
+
+            $stream->commit;
+            my $i = 0;
+            for my $expect (@sequence_of) {
+                my $tt = $stream->current->type;
+                $stream->rollback, return -1 unless ref $expect eq 'Regexp' ? 
+                                     $tt =~ $expect : 
+                                     $tt eq $expect;
+                $stream->next if ++$i < @sequence_of;
+            }
+            
+            do { my $r = $_->(@_); 
+                $stream->rollback, return $r if $r <= 0 
+            } for @checks;
+
+            $stream->rollback;
+            
             1;
-        };            
+        };                    
     }
     
     return bless [$rule, $name], $pkg;

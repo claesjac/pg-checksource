@@ -20,6 +20,11 @@ token "whitespace-before-operator" {
 token "keywords-in-caps" {
     type: %keywords;
 };
+
+token "foo" {
+    sequence-of: FOO;
+};
+
 __END_OF_RULES__
 
 use Data::Dumper qw(Dumper);
