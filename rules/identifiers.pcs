@@ -38,11 +38,11 @@ define-list functions
 token "identifier" {
     type: IDENT;
     matches: "^[a-z][a-z0-9]*(_[a-z0-9]*)$";
-    exclude-ci: %functions;
+    exclude-ci: @functions;
 };
 
 token "built-in-functions-in-caps" {
     type: IDENT;
     matches: "^[A-Z][A-Z0-9_]*$";
-    only-ci: %functions;
+    only-ci: @functions;
 };

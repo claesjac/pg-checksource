@@ -1,13 +1,14 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 use strict;
 use warnings;
 use feature 'say';
 
-use File::HomeDir;
-use File::Spec;
+use File::Temp qw(tempfile);
+
+use DBI;
 use Getopt::Long;
-use Pg::Checksource;
+use File::Spec::Functions qw(rel2abs splitpath);
 
 my $config_file;
 my $debug;
@@ -22,5 +23,52 @@ unless ($result) {
     exit 1;
 }
 
-my $app = Pg::Checksource->new({config => $config_file, debug => $debug});
-$app->run(@ARGV);
+my $dbh = DBI->connect("dbi:Pg:dbname=pg-checksource", "", "", { RaiseError => 1, AutoCommit => 1 });
+
+my (undef, $base) = splitpath($0);
+$base = rel2abs($base);
+$base =~ s/bin$//;
+
+eval {
+$dbh->do("DROP FUNCTION pg_checksource(text,text,text[]);");
+};
+
+my ($installed) = $dbh->selectrow_array("SELECT 1 FROM pg_proc WHERE proname = 'pg_checksource'");
+unless ($installed) {
+    # Install pgplperl_prove()
+    my $src = do { local $/; <DATA> };
+	$src =~ s/"<CWD>"/"$base"/;
+    $dbh->do($src);
+}
+
+my ($fh, $filename);
+for (@ARGV) {
+	if ($_ eq '-') {
+		($fh, $filename) = tempfile(UNLINK => 0);
+		print $fh join "\n", <STDIN>;
+		$_ = $filename;
+		close $fh;
+	}
+}
+
+my ($results) = $dbh->selectrow_array("SELECT * FROM pg_checksource(?, ?, ?)", {}, $config_file, $debug, \@ARGV);
+$results //= "";
+print $results, "\n";
+
+unlink $filename if $filename;
+
+__END__
+CREATE OR REPLACE FUNCTION pg_checksource(text, text, text[]) RETURNS text AS $BODY$
+	use DBI;
+	use Pg::Checksource;
+	use File::chdir;
+	
+	local $CWD = "<CWD>";
+	
+    my ($config_file, $debug, $argv) = @_;
+
+	my $app = Pg::Checksource->new({config => $config_file, debug => $debug});
+	my $err = $app->run(@$argv);
+            
+    return $err;
+$BODY$ LANGUAGE plperlu;

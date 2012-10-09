@@ -8,7 +8,7 @@ use List::MoreUtils qw(any);
 use Carp qw(croak);
 
 sub build {
-    my ($pkg, $desc) = @_;
+    my ($pkg, $set, $desc) = @_;
     
     my $name = $desc->{name};
     
@@ -105,7 +105,7 @@ sub build {
         }
     }
     
-    return bless [sub { 1; }, $name] unless @checks;
+    return bless [sub { 1; }, $name, $set] unless @checks;
     
     my $rule;
     if (@types) {
@@ -159,7 +159,7 @@ sub build {
         };                    
     }
     
-    return bless [$rule, $name], $pkg;
+    return bless [$rule, $name, $set], $pkg;
 }
 
 sub check {
@@ -170,6 +170,16 @@ sub check {
 sub name {
     my $rule = shift;
     return $rule->[1];
+}
+
+sub set {
+	my $rule = shift;
+	return $rule->[2];
+}
+
+sub fqn {
+	my $rule = shift;
+	return join "/", @{$rule}[2,1];
 }
 
 1;

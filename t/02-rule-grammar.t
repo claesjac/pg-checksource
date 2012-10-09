@@ -18,7 +18,7 @@ token "whitespace-before-operator" {
 };
 
 token "keywords-in-caps" {
-    type: %keywords;
+    type: \@keywords;
 };
 
 token "foo" {

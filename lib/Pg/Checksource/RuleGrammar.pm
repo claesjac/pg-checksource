@@ -21,6 +21,7 @@ sub new {
 
     return $self;
 }
+
 sub parse_ident_and_pattern_list {
     my $self = shift;
 
@@ -42,7 +43,7 @@ sub parse_variable_as_list {
 sub parse_variable {
     my $self = shift;
 
-    my $name = substr($self->expect(qr/%[[:alpha:]_]\w*/), 1);
+    my $name = substr($self->expect(qr/@[[:alpha:]_]\w*/), 1);
     
     $self->fail("No variable named $name declared") unless exists $Parser_Data{refaddr $self}->{vars}->{$name};
         
@@ -57,6 +58,7 @@ sub parse_variable_or_list {
         sub { $self->parse_ident_and_pattern_list; },
     );
 }
+
 sub parse_token_rule {
     my $self = shift;
 

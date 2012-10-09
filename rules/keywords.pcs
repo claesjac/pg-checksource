@@ -31,6 +31,6 @@ define-list keywords
     XMLFOREST, XMLPARSE, XMLPI, XMLROOT, XMLSERIALIZE, YEAR_P, YES_P, ZONE; 
 
 token "keywords-in-caps" {
-    type: %keywords;
+    type: @keywords;
     matches: "^[A-Z]+$";
 };

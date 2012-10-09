@@ -62,7 +62,7 @@ sub _build_rules {
             }
         }
                 
-        my @section_rules = Pg::Checksource::RuleBuilder->build(@$rule_descriptions);
+        my @section_rules = Pg::Checksource::RuleBuilder->build($rule_set, @$rule_descriptions);
         push @rules, @section_rules;
     }
     
@@ -78,6 +78,8 @@ sub run {
     my @token_rules = @{$self->token_rules};
     my @node_rules = @{$self->node_rules};
 
+	my @errs;
+
     for my $file (@_) {
         if (@token_rules) {
             my $src = read_file($file eq '-' ? \*STDIN : $file);
@@ -89,7 +91,7 @@ sub run {
                 $self->debug && say "Checking token ", $t->type, " with value '", $t->src, "' at line: ", $t->line, " column: ", $t->column;
                 for my $rule (@token_rules) {
                     unless ($rule->check($t, $stream)) {
-                        say "'", $t->src, "' at line ", $t->line, " column ", $t->column, " doesn't conform to '", $rule->name, "'";
+                        push @errs, join "", "'", $t->src, "' at line ", $t->line, " column ", $t->column, " doesn't conform to '", $rule->fqn, "'";
                     }
                 }
 
@@ -97,6 +99,8 @@ sub run {
             }
         }
     }
+
+	return join "\n", @errs;	
 }
     
 1;
